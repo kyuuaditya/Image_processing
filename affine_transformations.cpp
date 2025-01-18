@@ -4,6 +4,7 @@
 using namespace cimg_library;
 
 int main() {
+    // import the image
     CImg<unsigned char> img("image.jpg");
     int w = img.width();
     int h = img.height();
@@ -13,14 +14,15 @@ int main() {
     CImgDisplay display(image, "Glitch the Image");
     image.fill(0);
 
-    float scale = 1;
-    float sx = 0.75;
-    float sy = 0.75;
-    float a = 0;
-    float b = 0;
+    float sx = 0.75; // scale in x-direction
+    float sy = 0.75; // scale in y-direction
+    float a = 0; // shear-x
+    float b = 0; // shear-y
     int translate_x = w / 8;
     int translate_y = h / 8;
-    float theta = 0;
+    float theta = 0; // rotation angle
+
+    // temprary variables
     int cord_x = 0;
     int cord_y = 0;
 
@@ -36,24 +38,12 @@ int main() {
         // apply rgb shift
         for (int i = 0; i < w; i++) {
             for (int j = 0; j < h; j++) {
-                // // shear only
-                // cord_x = i * (tanA * tanB + 1) + j * tanA;
-                // cord_y = i * tanB + j;
-
-                // // shear -> scaling
-                // cord_x = i * (sx + sx * tanA * tanB) + sx * j * tanA;
-                // cord_y = sy * i * tanB + sy * j;
-
-                // // shear -> scaling -> rotation
-                // cord_x = i * (sx * cosT + tanB * (sx * tanA * cosT - sy * sinT)) + j * (sx * tanA * cosT - sy * sinT);
-                // cord_y = i * (sx * sinT + tanB * (sx * tanA * sinT + sy * cosT)) + j * (sy * cosT + sx * tanA * sinT);
-
-                // shear -> scaling -> rotation(centre)
-                cord_x = cosT * (i * (sx + sx * tanA * tanB) + sx * j * tanA - rotation * w / 4) - sinT * (sy * i * tanB + sy * j - rotation * h / 4) + rotation * w / 4 + translate_x;
-                cord_y = sinT * (i * (sx + sx * tanA * tanB) + sx * j * tanA - rotation * w / 4) + cosT * (sy * i * tanB + sy * j - rotation * h / 4) + rotation * h / 4 + translate_y;
+                // shear -> scaling -> rotation(centre) -> translation
+                cord_x = cosT * (i * (sx + sx * tanA * tanB) + sx * j * tanA - w / 4) - sinT * (sy * i * tanB + sy * j - h / 4) + w / 4 + translate_x;
+                cord_y = sinT * (i * (sx + sx * tanA * tanB) + sx * j * tanA - w / 4) + cosT * (sy * i * tanB + sy * j - h / 4) + h / 4 + translate_y;
 
                 // transform all rgb channels
-                if (cord_x >= 0 && cord_x < w && cord_y >= 0 && cord_y < h) {
+                if (cord_x >= 0 && cord_x < w && cord_y >= 0 && cord_y < h) { // check if it's in canvas
                     image(cord_x, cord_y, 0) = img(i, j, 0);
                     image(cord_x, cord_y, 1) = img(i, j, 1);
                     image(cord_x, cord_y, 2) = img(i, j, 2);
@@ -63,26 +53,16 @@ int main() {
 
 
         // <-------------key events------------->
-        if (display.is_keyARROWUP()) {
-            translate_y -= 1;
-        };
-        if (display.is_keyARROWDOWN()) {
-            translate_y += 1;
-        };
-        if (display.is_keyARROWLEFT()) {
-            translate_x -= 1;
-        };
-        if (display.is_keyARROWRIGHT()) {
-            translate_x += 1;
-        };
+        if (display.is_keyARROWUP()) translate_y -= 1;
+        if (display.is_keyARROWDOWN()) translate_y += 1;
+        if (display.is_keyARROWLEFT()) translate_x -= 1;
+        if (display.is_keyARROWRIGHT()) translate_x += 1;
 
         if (display.is_keyW()) {
-            scale += 0.01;
             sx += 0.01;
             sy += 0.01;
         };
         if (display.is_keyS()) {
-            scale -= 0.01;
             sx -= 0.01;
             sy -= 0.01;
         };
@@ -93,7 +73,6 @@ int main() {
 
         if (display.is_keyD()) a += 0.01;
         if (display.is_keyA()) a -= 0.01;
-
         if (display.is_keyQ()) b += 0.01;
         if (display.is_keyE()) b -= 0.01;
 
@@ -103,7 +82,7 @@ int main() {
         if (display.is_keyESC()) break;
 
         if (display.is_keyENTER()) {
-            image.save("output.jpg");
+            image.save("output.png");
             std::cout << "Image saved as output.jpg" << std::endl;
         }
         // <-------------key events------------->
