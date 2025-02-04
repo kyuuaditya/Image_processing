@@ -12,55 +12,46 @@ std::vector<std::vector<double>> generateGaussianKernel(int size, double sigma) 
     std::vector<std::vector<double>> kernel(size, std::vector<double>(size));
     double sum = 0.0;
     int halfSize = size / 2;
-    double min = 1;
 
-    for (int x = -halfSize; x <= halfSize; ++x) {
-        for (int y = -halfSize; y <= halfSize; ++y) {
-            double value = (double)((1 / (2 * M_PI * sigma * sigma)) * exp(-(x * x + y * y) / (2 * sigma * sigma)));
-            kernel[x + halfSize][y + halfSize] = value;
+    for (int x = 0; x < size; x++) {
+        for (int y = 0; y < size; y++) {
+            double value = (double)((1 / (2 * M_PI * sigma * sigma)) * exp(-((x - halfSize) * (x - halfSize) + (y - halfSize) * (y - halfSize)) / (2 * sigma * sigma)));
+            kernel[x][y] = value;
             sum += value;
         }
     }
 
-    for (int i = 0; i < size; ++i) {
-        for (int j = 0; j < size; ++j) {
+    for (int i = 0; i < size; i++) { // Normalizing the kernel
+        for (int j = 0; j < size; j++) {
             kernel[i][j] /= sum;
         }
+    }
+
+    for (int i = 0;i < size;i++) { // Displaying the kernel
+        for (int j = 0;j < size;j++) {
+            std::cout << kernel[i][j] << " ";
+        }
+        std::cout << std::endl;
     }
 
     return kernel;
 }
 
 // Applying Gaussian blur to the image
-void applyGaussianBlur(std::vector<std::vector<std::vector<int>>>& imageData, int sizeX, int sizeY, double sigma) {
-    int kernelSize = 3; // You can change this to any odd number
+void applyGaussianBlur(std::vector<std::vector<std::vector<int>>>& imageData, int sizeX, int sizeY, double sigma, int padding) {
+    int kernelSize = 5; // You can change this to any odd number
     std::vector<std::vector<double>> kernel = generateGaussianKernel(kernelSize, sigma);
     std::vector<std::vector<std::vector<int>>> tempImageGaus = imageData;
 
     int halfSize = kernelSize / 2;
-    // for (unsigned int x = halfSize; x < sizeX - halfSize; ++x) {
-    //     for (unsigned int y = halfSize; y < sizeY - halfSize; ++y) {
-    //         int r = 0.0, g = 0.0, b = 0.0;
-    //         for (int i = -halfSize; i <= halfSize; ++i) {
-    //             for (int j = -halfSize; j <= halfSize; ++j) {
-    //                 r += imageData[x + i][y + j][0] * kernel[i + halfSize][j + halfSize];
-    //                 g += imageData[x + i][y + j][1] * kernel[i + halfSize][j + halfSize];
-    //                 b += imageData[x + i][y + j][2] * kernel[i + halfSize][j + halfSize];
-    //             }
-    //         }
-    //         tempImageGaus[x][y][0] = static_cast<int>(r);
-    //         tempImageGaus[x][y][1] = static_cast<int>(g);
-    //         tempImageGaus[x][y][2] = static_cast<int>(b);
-    //     }
-    // }
-    for (unsigned int x = 0; x < sizeX; x++) {
-        for (unsigned int y = 0; y < sizeY; y++) {
+    for (unsigned int x = padding; x < sizeX - padding; x++) {
+        for (unsigned int y = padding; y < sizeY - padding; y++) {
             int r = 0, g = 0, b = 0;
             for (int i = 0; i < kernelSize; i++) {
                 for (int j = 0; j <= kernelSize; j++) {
-                    r += imageData[x][y][0] * kernel[i][j];
-                    g += imageData[x][y][1] * kernel[i][j];
-                    b += imageData[x][y][2] * kernel[i][j];
+                    r += imageData[x - halfSize + i][y - halfSize + j][0] * kernel[i][j];
+                    g += imageData[x - halfSize + i][y - halfSize + j][1] * kernel[i][j];
+                    b += imageData[x - halfSize + i][y - halfSize + j][2] * kernel[i][j];
                 }
             }
             tempImageGaus[x][y][0] = static_cast<int>(r);
@@ -83,7 +74,7 @@ int main() {
     sf::Vector2u size = image.getSize();
     std::cout << "Image size: " << size.x << "x" << size.y << std::endl;
 
-    int padding = 2;
+    int padding = 4;
     std::vector<std::vector<std::vector<int>>> imageData(size.x + padding, std::vector<std::vector<int>>(size.y + padding, std::vector<int>(3)));
     std::vector<std::vector<std::vector<int>>> tempImage(size.x + padding, std::vector<std::vector<int>>(size.y + padding, std::vector<int>(3)));
 
@@ -118,27 +109,10 @@ int main() {
     // imageData = tempImage;
     // ! <------------------------------------------ sobel filter ----------------------------------------->
 
-    // ? <------------------------------------------ gaussian filter ----------------------------------------->
-    // // 3x3 kernel   1 2 1  
-    // //              2 4 2
-    // //              1 2 1
-    // // applying gaussian blur to the image
-    // for (unsigned int x = 1; x < size.x - 1; ++x) {
-    //     for (unsigned int y = 1; y < size.y - 1; ++y) {
-    //         int r = (imageData[x - 1][y - 1][0] + 2 * imageData[x - 1][y][0] + imageData[x - 1][y + 1][0] + 2 * imageData[x][y - 1][0] + 4 * imageData[x][y][0] + 2 * imageData[x][y + 1][0] + imageData[x + 1][y - 1][0] + 2 * imageData[x + 1][y][0] + imageData[x + 1][y + 1][0]) / 16;
-    //         int g = (imageData[x - 1][y - 1][1] + 2 * imageData[x - 1][y][1] + imageData[x - 1][y + 1][1] + 2 * imageData[x][y - 1][1] + 4 * imageData[x][y][1] + 2 * imageData[x][y + 1][1] + imageData[x + 1][y - 1][1] + 2 * imageData[x + 1][y][1] + imageData[x + 1][y + 1][1]) / 16;
-    //         int b = (imageData[x - 1][y - 1][2] + 2 * imageData[x - 1][y][2] + imageData[x - 1][y + 1][2] + 2 * imageData[x][y - 1][2] + 4 * imageData[x][y][2] + 2 * imageData[x][y + 1][2] + imageData[x + 1][y - 1][2] + 2 * imageData[x + 1][y][2] + imageData[x + 1][y + 1][2]) / 16;
-    //         tempImage[x][y][0] = r;
-    //         tempImage[x][y][1] = g;
-    //         tempImage[x][y][2] = b;
-    //     }
-    // }
-    // imageData = tempImage;
-    // ? <------------------------------------------ gaussian filter ----------------------------------------->
-
+    // ? <------------------------------------------ gaussian filter (constant kernel) ----------------------------------------->
     double sigma = 1.0; // You can change this value
-    applyGaussianBlur(imageData, size.x, size.y, sigma);
-
+    applyGaussianBlur(imageData, size.x, size.y, sigma, padding);
+    // ? <------------------------------------------ gaussian filter (constant kernel) ----------------------------------------->
 
     // ! <------------------------------------------ clock ----------------------------------------->
     auto end = std::chrono::high_resolution_clock::now(); // End time
