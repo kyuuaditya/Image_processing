@@ -39,7 +39,7 @@ std::vector<std::vector<double>> generateGaussianKernel(int size, double sigma) 
 
 // Applying Gaussian blur to the image
 void applyGaussianBlur(std::vector<std::vector<std::vector<int>>>& imageData, int sizeX, int sizeY, double sigma, int padding) {
-    int kernelSize = 5; // You can change this to any odd number
+    int kernelSize = 2 * int(padding / 2) + 1; // You can change this to any odd number
     std::vector<std::vector<double>> kernel = generateGaussianKernel(kernelSize, sigma);
     std::vector<std::vector<std::vector<int>>> tempImageGaus = imageData;
 
@@ -65,7 +65,7 @@ void applyGaussianBlur(std::vector<std::vector<std::vector<int>>>& imageData, in
 int main() {
     // Load an image file
     sf::Image image;
-    if (!image.loadFromFile("image.png")) {
+    if (!image.loadFromFile("12345.jpg")) {
         std::cerr << "Failed to load image" << std::endl;
         return -1;
     }
@@ -74,13 +74,14 @@ int main() {
     sf::Vector2u size = image.getSize();
     std::cout << "Image size: " << size.x << "x" << size.y << std::endl;
 
-    int padding = 4;
+    int padding = 6;
     std::vector<std::vector<std::vector<int>>> imageData(size.x + padding, std::vector<std::vector<int>>(size.y + padding, std::vector<int>(3)));
+    std::vector<std::vector<std::vector<int>>> imageData_noPadding(size.x, std::vector<std::vector<int>>(size.y, std::vector<int>(3)));
     std::vector<std::vector<std::vector<int>>> tempImage(size.x + padding, std::vector<std::vector<int>>(size.y + padding, std::vector<int>(3)));
 
     // reading image data and sending it to an array
-    for (unsigned int x = padding / 2; x < size.x + padding / 2; ++x) {
-        for (unsigned int y = padding / 2; y < size.y + padding / 2; ++y) {
+    for (unsigned int x = padding / 2; x < size.x + padding / 2; x++) {
+        for (unsigned int y = padding / 2; y < size.y + padding / 2; y++) {
             sf::Color pixel = image.getPixel(x - padding / 2, y - padding / 2); // get pixel color
             imageData[x][y][0] = pixel.r;
             imageData[x][y][1] = pixel.g;
@@ -109,10 +110,21 @@ int main() {
     // imageData = tempImage;
     // ! <------------------------------------------ sobel filter ----------------------------------------->
 
-    // ? <------------------------------------------ gaussian filter (constant kernel) ----------------------------------------->
+    // TODO <------------------------------------------ gaussian filter (constant kernel) ----------------------------------------->
     double sigma = 1.0; // You can change this value
+    tempImage = imageData;
     applyGaussianBlur(imageData, size.x, size.y, sigma, padding);
-    // ? <------------------------------------------ gaussian filter (constant kernel) ----------------------------------------->
+    sigma = 2.0;
+    applyGaussianBlur(tempImage, size.x, size.y, sigma, padding);
+
+    for (unsigned int x = 0; x < size.x; x++) {
+        for (unsigned int y = 0; y < size.y; y++) {
+            imageData[x][y][0] = abs(imageData[x][y][0] - tempImage[x][y][0]);
+            imageData[x][y][1] = abs(imageData[x][y][1] - tempImage[x][y][1]);
+            imageData[x][y][2] = abs(imageData[x][y][2] - tempImage[x][y][2]);
+        }
+    }
+    // TODO <------------------------------------------ gaussian filter (constant kernel) ----------------------------------------->
 
     // ! <------------------------------------------ clock ----------------------------------------->
     auto end = std::chrono::high_resolution_clock::now(); // End time
@@ -124,7 +136,15 @@ int main() {
     // ? <-----------------------------------turning array data back to image---------------------------------------------->
     for (unsigned int x = 0; x < size.x; x++) {
         for (unsigned int y = 0; y < size.y; y++) {
-            image.setPixel(x, y, sf::Color(imageData[x][y][0], imageData[x][y][1], imageData[x][y][2]));
+            imageData_noPadding[x][y][0] = 255 - imageData[x + padding / 2][y + padding / 2][0];
+            imageData_noPadding[x][y][1] = 255 - imageData[x + padding / 2][y + padding / 2][1];
+            imageData_noPadding[x][y][2] = 255 - imageData[x + padding / 2][y + padding / 2][2];
+        }
+    }
+
+    for (unsigned int x = 0; x < size.x; x++) {
+        for (unsigned int y = 0; y < size.y; y++) {
+            image.setPixel(x, y, sf::Color(imageData_noPadding[x][y][0], imageData_noPadding[x][y][1], imageData_noPadding[x][y][2]));
         }
     }
 
@@ -149,6 +169,7 @@ int main() {
         window.clear();
         window.draw(sprite);
         window.display();
+        window.close();
     }
 
 }
